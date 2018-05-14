@@ -14,5 +14,6 @@ func main() {
 
 	e.GET("/", handler.MainPage())
 
+	e.Debug = true
 	e.Start(":5000")
 }
