@@ -1,0 +1,7 @@
+/log/*.log
+/tmp
+/images
+.project
+.DS_Store
+.idea
+.secret
