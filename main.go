@@ -6,13 +6,15 @@ import (
 	"./handlers"
 )
 
+var targetDir = "./images"
+
 func main() {
 	e := echo.New()
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	e.GET("/", handler.MainPage())
+	e.GET("/", handler.MainPage(targetDir))
 
 	e.Debug = true
 	e.Start(":5000")
