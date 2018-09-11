@@ -2,12 +2,10 @@ package handler
 
 import (
 	"os"
-	"regexp"
 	"path/filepath"
 	"io/ioutil"
 	"../config"
 	"../db"
-	"../model"
 )
 
 var connection = db.Connection
@@ -46,19 +44,20 @@ func loadFile(target string, dir string) (files []os.FileInfo) {
 	return
 }
 
+/*
 func inspectImages(target string) (images []model.Image) {
 	r := regexp.MustCompile(`\.(jpg|jpeg|png|gif)$`)
 	files := loadDir(target)
 	for _, file := range files {
 		if r.MatchString(file.Name()) {
-			exif := decodeExif(filepath.Join(target, file.Name()))
-			images = append(images, model.Image{Filename: file.Name(), Exif: exif})
+			image := model.Image{Filename: file.Name()}
+			image = decodeExif(image)
+			images = append(images, image)
 		}
 	}
 	return
 }
 
-/*
 func inspectTree(target string) (albums []Album) {
 	dirs, err := ioutil.ReadDir(target)
 	if err != nil {

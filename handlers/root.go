@@ -72,7 +72,6 @@ func appendCache(dirs []string) {
 	for _, dir := range dirs {
 		now :=  time.Now().Format("2006-01-02 15:04:05")
 		album := model.Album{Name: dir, DirName: dir, UpdatedAt: now, CreatedAt: now}
-		images := inspectImages(dir)
 
 		result, err := connection.NamedExec(`INSERT INTO albums (name, dirname, updated_at, created_at, images_count) VALUES (:name, :dirname, :updated_at, :created_at, :images_count)`,
 			map[string]interface{} {
@@ -80,17 +79,18 @@ func appendCache(dirs []string) {
 				"dirname": album.DirName,
 				"updated_at": album.UpdatedAt,
 				"created_at": album.CreatedAt,
-				"images_count": len(images),
+				"images_count": 0,
 			})
+		if err != nil {
+			return
+		}
 		albumId, err := result.LastInsertId()
 		if err != nil {
 			return
 		}
+		album.Id = albumId
 
-		for _, image := range images {
-			image.AlbumId = albumId
-		}
-		appendImage(images)
+		updateAlbum(album, []model.Image{})
 	}
 	return
 }
