@@ -1,23 +1,25 @@
 package model
 
-import (
-	"time"
-)
-
 type Album struct {
 	Id          int64     `db:"id"`
-	Name        string    `db:"name"`
-	DirName     string    `db:"dirname"`
 	UpdatedAt   string    `db:"updated_at"`
 	CreatedAt   string    `db:"created_at"`
+	Name        string    `db:"name"`
+	DirName     string    `db:"dirname"`
 	ImagesCount int       `db:"images_count"`
 	Images      []Image
 }
 
 type Image struct {
 	Id          int64     `db:"id"`
+	UpdatedAt   string    `db:"updated_at"`
+	CreatedAt   string    `db:"created_at"`
 	AlbumId     int64     `db:"album_id"`
 	Filename    string    `db:"filename"`
+	Exif
+}
+
+type Exif struct {
 	Maker       string    `db:"maker"`
 	Model       string    `db:"model"`
 	LensMaker   string    `db:"lens_maker"`
@@ -28,22 +30,4 @@ type Image struct {
 	Iso         string    `db:"iso"`
 	Latitude    float64   `db:"latitude"`
 	Longitude   float64   `db:"longitude"`
-	Exif        Exif
-}
-
-type Exif struct {
-	Maker string
-	Model string
-	LensMaker string
-	LensModel string
-	DateTime time.Time
-	FNumber string
-	FocalLength string
-	Iso string
-	LatLong LatLong
-}
-
-type LatLong struct {
-	Latitude float64
-	Longitude float64
 }
