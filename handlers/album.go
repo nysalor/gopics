@@ -3,6 +3,8 @@ package handler
 import (
 	"regexp"
 	"strconv"
+	"os"
+	"bufio"
 	"time"
 	"path/filepath"
 	"net/http"
@@ -26,7 +28,6 @@ func AlbumPage() echo.HandlerFunc {
 
 		album.Images = images
 
-
 		return  c.JSON(http.StatusOK, albumResult{Album: album})
 	}
 }
@@ -47,7 +48,7 @@ func loadAlbumCache(albumId int) (album model.Album) {
 }
 
 func loadImageCache(albumId int) (images []model.Image) {
-	sql := "select id, album_id, filename, maker, model, lens_maker, lens_model, took_at, f_number, focal_length, iso, latitude, longitude from images where album_id = ?"
+	sql := "select id, album_id, filename, maker, model, lens_maker, lens_model, took_at, f_number, focal_length, iso, latitude, longitude, updated_at, created_at from images where album_id = ?"
 	err := connection.Select(&images, sql, albumId)
 	if err != nil {
 		return
@@ -56,8 +57,9 @@ func loadImageCache(albumId int) (images []model.Image) {
 }
 
 func updateAlbum(album model.Album, images []model.Image) bool {
-	additionalImages := []model.Image{}
+	newFiles := []string{}
 	missingImages := []model.Image{}
+	updateImages := []model.Image{}
 	files := loadFile(Config.TargetDir, album.DirName)
 	r := regexp.MustCompile(`\.(jpg|jpeg|png|gif)$`)
 
@@ -67,12 +69,16 @@ func updateAlbum(album model.Album, images []model.Image) bool {
 			for _, image := range images {
 				if image.Filename == file.Name() {
 					missing = false
+					mtime := file.ModTime()
+					t, _ := time.Parse("2006-01-02 15:04:05", image.UpdatedAt)
+					if mtime.Unix() >= t.Unix() {
+						updateImages = append(updateImages, image)
+					}
 					break
 				}
 			}
 			if missing {
-				newImage := mergeExif(model.Image{Filename: file.Name(), AlbumId: album.Id}, album)
-				additionalImages = append(additionalImages, newImage)
+				newFiles = append(newFiles, file.Name())
 			}
 		}
 	}
@@ -90,22 +96,29 @@ func updateAlbum(album model.Album, images []model.Image) bool {
 		}
 	}
 
-	appendImage(additionalImages)
-	removeImage(missingImages)
+	resAppend := appendImage(newFiles, album)
+	resRemove := removeImage(missingImages)
+	resText := updateText(album)
+	_ = updateImage(updateImages)
 
-	if len(additionalImages) > 0 || len(missingImages) > 0 {
-		return true
-	} else {
+	if resAppend || resRemove {
 		updateImageCount(album)
-		return false
+		return true
 	}
 
+	if resText {
+		return true
+	}
+
+	return false
 }
 
-func appendImage(images []model.Image) {
-	now :=  time.Now().Format("2006-01-02 15:04:05")
-	for _, image := range images {
-		_, err := connection.NamedExec(`INSERT INTO images (album_id, filename, maker, model, lens_maker, lens_model, f_number, focal_length, iso, latitude, longitude, took_at, updated_at, created_at) VALUES (:album_id, :filename, :maker, :model, :lens_maker, :lens_model, :f_number, :focal_length, :iso, :latitude, :longitude, :took_at, :updated_at, :created_at)`,
+func appendImage(files []string, album model.Album) (result bool) {
+	result = false
+	now :=  nowText()
+	for _, file := range files {
+		image := mergeExif(model.Image{Filename: file, AlbumId: album.Id}, album)
+		res, err := connection.NamedExec(`INSERT INTO images (album_id, filename, maker, model, lens_maker, lens_model, f_number, focal_length, iso, latitude, longitude, took_at, updated_at, created_at) VALUES (:album_id, :filename, :maker, :model, :lens_maker, :lens_model, :f_number, :focal_length, :iso, :latitude, :longitude, :took_at, :updated_at, :created_at)`,
 			map[string]interface{} {
 				"album_id": image.AlbumId,
 				"filename": image.Filename,
@@ -122,20 +135,51 @@ func appendImage(images []model.Image) {
 				"updated_at": now,
 				"created_at": now,
 			})
-		if err != nil {
-			return
+		rows, _ := res.RowsAffected()
+		if err == nil &&  rows > 0 {
+			result = true
 		}
 	}
 	return
 }
 
-func removeImage(images []model.Image) {
+func removeImage(images []model.Image) (result bool) {
+	result = false
 	for _, image := range images {
-		_, err := connection.NamedExec("DELETE FROM images WHERE id = :image_id", image.Id)
-		if err != nil {
-			return
+		res, err := connection.NamedExec("DELETE FROM images WHERE id = :image_id", image.Id)
+		rows, _ := res.RowsAffected()
+		if err == nil && rows > 0 {
+			result = true
 		}
 	}
+	return
+}
+
+func updateImage(images []model.Image) (result bool) {
+	result = false
+	now :=  nowText()
+	for _, image := range images {
+		res, err := connection.NamedExec(`UPDATE images SET maker = :maker, model = :model, lens_maker = :lens_maker, lens_model = :lens_model, f_number = :f_number, focal_length = :focal_length, iso = :iso, latitude = :latitude, longitude = :longitude, took_at = :took_at, updated_at = :updated_at WHERE id = :id`,
+			map[string]interface{} {
+				"id": image.Id,
+				"maker": image.Maker,
+				"model": image.Model,
+				"lens_maker": image.LensMaker,
+				"lens_model": image.LensModel,
+				"f_number": image.FNumber,
+				"focal_length": image.FocalLength,
+				"iso": image.Iso,
+				"latitude": image.Latitude,
+				"longitude": image.Longitude,
+				"took_at": image.TookAt,
+				"updated_at": now,
+			})
+		rows, _ := res.RowsAffected()
+		if err == nil && rows > 0 {
+			result = true
+		}
+	}
+	return
 }
 
 func updateImageCount(album model.Album) bool {
@@ -170,4 +214,28 @@ func mergeExif(image model.Image, album model.Album) model.Image {
 	image.Longitude = exif.Longitude
 
 	return image
+}
+
+func updateText(album model.Album) bool {
+	path := filepath.Join(Config.TargetDir, album.DirName, "album.txt")
+
+	f, err := os.Open(path)
+	if err != nil {
+		return false
+	}
+
+	lines := make([]string, 0, 5)
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		lines = append(lines, scanner.Text())
+	}
+	if ((album.Name != lines[0]) || (album.Description != lines[1])) {
+		now :=  nowText()
+		_, err = connection.Exec("UPDATE albums SET name = ?, description = ?, updated_at = ? WHERE id = ?", lines[0], lines[1], now, album.Id)
+		if err != nil {
+			panic(err)
+		}
+	}
+
+	return true
 }

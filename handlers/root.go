@@ -19,8 +19,9 @@ func IndexPage() echo.HandlerFunc {
 		dirs := loadDir(Config.TargetDir)
 		albums := loadCache()
 
-		reload := updateCache(dirs, albums)
-		if reload {
+		res := updateCache(dirs, albums)
+
+		if res {
 			albums = loadCache()
 		}
 
@@ -58,22 +59,24 @@ func updateCache(dirs []os.FileInfo, albums []model.Album) bool {
 		}
 	}
 
-	appendCache(missingDirs)
-	removeCache(missingAlbums)
+	resAppend := appendCache(missingDirs)
+	resRemove := removeCache(missingAlbums)
+	resText := updateAlbumTexts(albums)
 
-	if len(missingDirs) > 0 || len(missingAlbums) > 0 {
+	if resAppend || resRemove || resText {
 		return true
 	} else {
 		return false
 	}
 }
 
-func appendCache(dirs []string) {
+func appendCache(dirs []string) (result bool) {
+	result = false
 	for _, dir := range dirs {
 		now :=  time.Now().Format("2006-01-02 15:04:05")
 		album := model.Album{Name: dir, DirName: dir, UpdatedAt: now, CreatedAt: now}
 
-		result, err := connection.NamedExec(`INSERT INTO albums (name, dirname, updated_at, created_at, images_count) VALUES (:name, :dirname, :updated_at, :created_at, :images_count)`,
+		res, err := connection.NamedExec(`INSERT INTO albums (name, dirname, updated_at, created_at, images_count) VALUES (:name, :dirname, :updated_at, :created_at, :images_count)`,
 			map[string]interface{} {
 				"name": album.Name,
 				"dirname": album.DirName,
@@ -81,35 +84,54 @@ func appendCache(dirs []string) {
 				"created_at": album.CreatedAt,
 				"images_count": 0,
 			})
-		if err != nil {
-			return
-		}
-		albumId, err := result.LastInsertId()
-		if err != nil {
-			return
-		}
+		albumId, err := res.LastInsertId()
 		album.Id = albumId
 
-		updateAlbum(album, []model.Image{})
+		rows, _ := res.RowsAffected()
+		if err == nil && rows > 0 {
+			updateAlbum(album, []model.Image{})
+			result = true
+		}
 	}
 	return
 }
 
-func removeCache(albums []model.Album) {
+func removeCache(albums []model.Album) (result bool) {
+	result = false
 	for _, album := range albums {
-		_, err := connection.NamedExec("DELETE FROM albums WHERE id = :album_id", album.Id)
-		_, err = connection.NamedExec("DELETE FROM images WHERE album_id = :album_id", album.Id)
+		resAlbum, err := connection.NamedExec("DELETE FROM albums WHERE id = :album_id", album.Id)
+		rowsAlbum, _ := resAlbum.RowsAffected()
 		if err != nil {
-			return
+			panic(err)
+		}
+
+		resImage, err := connection.NamedExec("DELETE FROM images WHERE album_id = :album_id", album.Id)
+		rowsImage, _ := resImage.RowsAffected()
+		if err != nil {
+			panic(err)
+		}
+
+		if rowsAlbum > 0 || rowsImage > 0 {
+			result = true
 		}
 	}
+	return
 }
 
 func loadCache() (albums []model.Album) {
-	sql := "select id, name, dirname, images_count, updated_at, created_at from albums"
+	sql := "select id, name, description, dirname, images_count, updated_at, created_at from albums"
 	err := connection.Select(&albums, sql)
 	if err != nil {
 		return
+	}
+	return
+}
+
+func updateAlbumTexts(albums []model.Album) (result bool) {
+	result = false
+	for _, album := range albums {
+		res := updateText(album)
+		result = result || res
 	}
 	return
 }

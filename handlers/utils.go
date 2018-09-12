@@ -2,6 +2,7 @@ package handler
 
 import (
 	"os"
+	"time"
 	"path/filepath"
 	"io/ioutil"
 	"../config"
@@ -44,34 +45,6 @@ func loadFile(target string, dir string) (files []os.FileInfo) {
 	return
 }
 
-/*
-func inspectImages(target string) (images []model.Image) {
-	r := regexp.MustCompile(`\.(jpg|jpeg|png|gif)$`)
-	files := loadDir(target)
-	for _, file := range files {
-		if r.MatchString(file.Name()) {
-			image := model.Image{Filename: file.Name()}
-			image = decodeExif(image)
-			images = append(images, image)
-		}
-	}
-	return
+func nowText() string {
+	return time.Now().Format("2006-01-02 15:04:05")
 }
-
-func inspectTree(target string) (albums []Album) {
-	dirs, err := ioutil.ReadDir(target)
-	if err != nil {
-		return nil
-	}
-	for _, dir := range dirs {
-		path := filepath.Join(target, dir.Name())
-		finfo, _ := os.Stat(path)
-		if finfo.IsDir() {
-			albums = append(albums, Album{Name: dir.Name()})
-		}
-	}
-	return albums
-
-}
-*/
-

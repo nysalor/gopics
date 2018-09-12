@@ -6,6 +6,7 @@ type Album struct {
 	CreatedAt   string    `db:"created_at"`
 	Name        string    `db:"name"`
 	DirName     string    `db:"dirname"`
+	Description string    `db:"description"`
 	ImagesCount int       `db:"images_count"`
 	Images      []Image
 }
