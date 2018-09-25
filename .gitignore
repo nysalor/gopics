@@ -1,6 +1,7 @@
 /log/*.log
 /tmp
 /images
+/vendor
 .project
 .DS_Store
 .idea
