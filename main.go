@@ -27,6 +27,7 @@ func main() {
 
 	e.GET("/", handler.IndexPage())
 	e.GET("/albums/:id", handler.AlbumPage())
+	e.POST("/update", handler.UpdatePage())
 
 	e.Debug = true
 

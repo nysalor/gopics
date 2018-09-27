@@ -14,19 +14,43 @@ type indexResult struct {
 	Albums []model.Album
 }
 
+type updateResult struct {
+	Updated bool
+}
+
 func IndexPage() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		dirs := loadDir(Config.TargetDir)
 		albums := loadCache()
-
-		res := updateCache(dirs, albums)
-
+		res := UpdateDirs(albums)
 		if res {
 			albums = loadCache()
 		}
 
 		return  c.JSON(http.StatusOK, indexResult{Albums: albums})
 	}
+}
+
+func UpdatePage() echo.HandlerFunc {
+	return func(c echo.Context) error {
+		albums := loadCache()
+		res := UpdateDirs(albums)
+		if res {
+			albums = loadCache()
+		}
+
+		for _, album := range albums {
+			images := loadImageCache(int(album.Id))
+			updateAlbum(album, images)
+		}
+
+		return  c.JSON(http.StatusOK, updateResult{Updated: res})
+	}
+}
+
+func UpdateDirs(albums []model.Album) bool {
+	dirs := loadDir(Config.TargetDir)
+	res := updateCache(dirs, albums)
+	return res
 }
 
 func updateCache(dirs []os.FileInfo, albums []model.Album) bool {
@@ -90,6 +114,7 @@ func appendCache(dirs []string) (result bool) {
 		rows, _ := res.RowsAffected()
 		if err == nil && rows > 0 {
 			updateAlbum(album, []model.Image{})
+			initializeCover(album)
 			result = true
 		}
 	}
