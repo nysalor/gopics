@@ -3,6 +3,7 @@ package handler
 import (
 	"os"
 	"time"
+	"strings"
 	"path/filepath"
 	"io/ioutil"
 	"../config"
@@ -20,7 +21,7 @@ func Initialize(conf config.Config) {
 func loadDir(target string) (dirs []os.FileInfo) {
 	files, err := ioutil.ReadDir(target)
 	for _, file := range files {
-		if file.IsDir() {
+		if file.IsDir() && !strings.HasPrefix(file.Name(), ".") {
 			dirs = append(dirs, file)
 		}
 	}
