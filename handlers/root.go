@@ -113,7 +113,7 @@ func removeCache(albums []model.Album) (result bool) {
 }
 
 func loadCache() (albums []model.Album) {
-	sql := "select id, name, description, dirname, images_count, updated_at, created_at from albums"
+	sql := "select id, name, description, dirname, images_count, cover, updated_at, created_at from albums"
 	err := connection.Select(&albums, sql)
 	if err != nil {
 		return

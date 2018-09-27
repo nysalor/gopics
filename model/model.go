@@ -8,6 +8,7 @@ type Album struct {
 	DirName     string    `db:"dirname"`
 	Description string    `db:"description"`
 	ImagesCount int       `db:"images_count"`
+	Cover       string    `db:"cover"`
 	Images      []Image
 }
 

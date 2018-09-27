@@ -48,7 +48,7 @@ func loadAlbumCache(albumId int) (album model.Album) {
 }
 
 func loadImageCache(albumId int) (images []model.Image) {
-	sql := "select id, album_id, filename, maker, model, lens_maker, lens_model, took_at, f_number, focal_length, iso, latitude, longitude, updated_at, created_at from images where album_id = ?"
+	sql := "select id, album_id, filename, maker, model, lens_maker, lens_model, took_at, f_number, focal_length, iso, latitude, longitude, updated_at, created_at from images where album_id = ? order by took_at asc"
 	err := connection.Select(&images, sql, albumId)
 	if err != nil {
 		return
@@ -103,6 +103,9 @@ func updateAlbum(album model.Album, images []model.Image) bool {
 
 	if resAppend || resRemove {
 		updateImageCount(album)
+		if album.Cover == "" {
+			initializeCover(album)
+		}
 		return true
 	}
 
@@ -199,6 +202,22 @@ func updateImageCount(album model.Album) bool {
 	return false
 }
 
+func initializeCover(album model.Album) bool {
+	image := model.Image{}
+	sql := "select filename from images where album_id = ? order by took_at asc limit 1"
+	err := connection.Select(&image, sql, album.Id)
+	if err != nil {
+		return false
+	}
+
+	if image.Filename != "" {
+		now :=  nowText()
+		_, err = connection.Exec("update albums set cover = ?, updated_at = ? WHERE id = ?", image.Filename, now, album.Id)
+		return true
+	}
+	return false
+}
+
 func mergeExif(image model.Image, album model.Album) model.Image {
 	exif := decodeExif(filepath.Join(Config.TargetDir, album.DirName, image.Filename))
 
@@ -229,9 +248,21 @@ func updateText(album model.Album) bool {
 	for scanner.Scan() {
 		lines = append(lines, scanner.Text())
 	}
-	if ((album.Name != lines[0]) || (album.Description != lines[1])) {
+
+	name := lines[0]
+	description := lines[1]
+	cover := lines[2]
+
+	if cover != "" {
+		_, err := os.Stat(filepath.Join(Config.TargetDir, album.DirName, cover))
+		if os.IsNotExist(err) {
+			cover = ""
+		}
+	}
+
+	if ((album.Name != name) || (album.Description != description) || (album.Cover != cover)) {
 		now :=  nowText()
-		_, err = connection.Exec("UPDATE albums SET name = ?, description = ?, updated_at = ? WHERE id = ?", lines[0], lines[1], now, album.Id)
+		_, err = connection.Exec("update albums set name = ?, description = ?, cover = ?, updated_at = ? WHERE id = ?", name, description, cover, now, album.Id)
 		if err != nil {
 			panic(err)
 		}
