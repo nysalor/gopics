@@ -203,16 +203,18 @@ func updateImageCount(album model.Album) bool {
 }
 
 func initializeCover(album model.Album) bool {
-	image := model.Image{}
 	sql := "select filename from images where album_id = ? order by took_at asc limit 1"
-	err := connection.Select(&image, sql, album.Id)
-	if err != nil {
-		return false
-	}
+	rows := connection.QueryRow(sql, album.Id)
+	var filename string
+	rows.Scan(&filename)
 
-	if image.Filename != "" {
+	if filename != "" {
 		now :=  nowText()
-		_, err = connection.Exec("update albums set cover = ?, updated_at = ? WHERE id = ?", image.Filename, now, album.Id)
+		_, err := connection.Exec("update albums set cover = ?, updated_at = ? WHERE id = ?", filename, now, album.Id)
+		if err != nil {
+			return false
+		}
+
 		return true
 	}
 	return false
