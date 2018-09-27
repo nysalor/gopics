@@ -99,17 +99,11 @@ func appendCache(dirs []string) (result bool) {
 func removeCache(albums []model.Album) (result bool) {
 	result = false
 	for _, album := range albums {
-		resAlbum, err := connection.NamedExec("DELETE FROM albums WHERE id = :album_id", album.Id)
+		resAlbum := connection.MustExec("DELETE FROM albums WHERE id = ?", album.Id)
 		rowsAlbum, _ := resAlbum.RowsAffected()
-		if err != nil {
-			panic(err)
-		}
 
-		resImage, err := connection.NamedExec("DELETE FROM images WHERE album_id = :album_id", album.Id)
+		resImage := connection.MustExec("DELETE FROM images WHERE album_id = ?", album.Id)
 		rowsImage, _ := resImage.RowsAffected()
-		if err != nil {
-			panic(err)
-		}
 
 		if rowsAlbum > 0 || rowsImage > 0 {
 			result = true
