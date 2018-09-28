@@ -13,10 +13,11 @@ import (
 var dir = flag.String("d", "./images", "target dir")
 var port = flag.Int("p", 5000, "server port number")
 var host = flag.String("h", "localhost", "server port number")
+var baseUrl = flag.String("u", "http://localhost", "base url for images")
 
 func main() {
 	flag.Parse()
-	conf := config.Config{TargetDir: *dir, Port: *port, Host: *host, Log: logrus.New()}
+	conf := config.Config{TargetDir: *dir, Port:*port, Host: *host, BaseUrl: *baseUrl, Log: logrus.New()}
 	handler.Initialize(conf)
 
 	e := echo.New()

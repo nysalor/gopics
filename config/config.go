@@ -8,5 +8,6 @@ type Config struct {
 	TargetDir string
 	Port      int
 	Host      string
+	BaseUrl   string
 	Log       *logrus.Logger
 }
