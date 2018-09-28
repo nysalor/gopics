@@ -39,7 +39,7 @@ func UpdatePage() echo.HandlerFunc {
 		}
 
 		for _, album := range albums {
-			images := loadImageCache(int(album.Id))
+			images := loadImageCache(album)
 			updateAlbum(album, images)
 		}
 
