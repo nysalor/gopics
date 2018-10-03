@@ -44,19 +44,28 @@ func loadAlbumCache(albumId int) (album model.Album) {
 	if err != nil {
 		return
 	}
+	album.SetCoverUrl(Config.BaseUrl)
+
 	return
 }
 
 func loadImageCache(album model.Album) (images []model.Image) {
 	sql := "select id, album_id, filename, maker, model, lens_maker, lens_model, took_at, f_number, focal_length, iso, latitude, longitude, updated_at, created_at from images where album_id = ? order by took_at asc"
-	err := connection.Select(&images, sql, album.Id)
+	rows, err := connection.Queryx(sql, album.Id)
 	if err != nil {
 		return
 	}
-	for _, image := range images {
-		image.Album = album
-		image.setUrl()
+
+	for rows.Next() {
+		image := model.Image{}
+		err := rows.StructScan(&image)
+		if err != nil {
+			return
+		}
+		image.SetUrl(Config.BaseUrl, album.DirName)
+		images = append(images, image)
 	}
+
 	return
 }
 

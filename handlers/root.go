@@ -114,7 +114,6 @@ func appendCache(dirs []string) (result bool) {
 		rows, _ := res.RowsAffected()
 		if err == nil && rows > 0 {
 			updateAlbum(album, []model.Image{})
-			initializeCover(album)
 			result = true
 		}
 	}
@@ -139,11 +138,23 @@ func removeCache(albums []model.Album) (result bool) {
 
 func loadCache() (albums []model.Album) {
 	sql := "select id, name, description, dirname, images_count, cover, updated_at, created_at from albums"
-	err := connection.Select(&albums, sql)
+
+	rows, err := connection.Queryx(sql)
 	if err != nil {
 		return
 	}
-	return
+
+	for rows.Next() {
+		album := model.Album{}
+		err := rows.StructScan(&album)
+		if err != nil {
+			return
+		}
+		album.SetCoverUrl(Config.BaseUrl)
+		albums = append(albums, album)
+	}
+
+	return albums
 }
 
 func updateAlbumTexts(albums []model.Album) (result bool) {
