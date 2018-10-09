@@ -7,10 +7,6 @@ import (
 
 var Config config.Config
 
-type UrlString struct {
-	string
-}
-
 type Album struct {
 	Id          int64     `db:"id"`
 	UpdatedAt   string    `db:"updated_at"`
