@@ -6,16 +6,18 @@ import (
 	"strings"
 	"path/filepath"
 	"io/ioutil"
+	"github.com/jmoiron/sqlx"
 	"../config"
 	"../db"
 )
 
-var connection = db.Connection
+var connection *sqlx.DB
 var Config config.Config
 
 func Initialize(conf config.Config) {
 	Config = conf
 	Config.Log.SetOutput(os.Stdout)
+	connection = db.Connect(conf.DB)
 }
 
 func loadDir(target string) (dirs []os.FileInfo) {

@@ -2,16 +2,13 @@ package db
 
 import (
 	"log"
-	"os"
-	"fmt"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	"../config"
 )
 
-var Connection = DBConnect()
-
-func DBConnect() *sqlx.DB {
-	db, err := sqlx.Connect("mysql", fmt.Sprintf("%s:%s@(%s:%s)/%s", os.Getenv("DB_USER"),  os.Getenv("DB_PASSWORD"),  os.Getenv("DB_HOST"),  os.Getenv("DB_PORT"),  os.Getenv("DB_NAME")))
+func Connect(conf config.Database) *sqlx.DB {
+	db, err := sqlx.Connect("mysql", conf.Url())
 	if err != nil {
 		log.Fatalln(err)
 	}
