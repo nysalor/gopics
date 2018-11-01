@@ -1,27 +1,45 @@
 package model
 
 import (
+	"os"
 	"path/filepath"
 	"../config"
 )
 
-var Config config.Config
+var conf config.Config
 
-type Album struct {
-	Id          int64     `db:"id"`
-	UpdatedAt   string    `db:"updated_at"`
-	CreatedAt   string    `db:"created_at"`
-	Name        string    `db:"name"`
-	DirName     string    `db:"dirname"`
-	Description string    `db:"description"`
-	ImagesCount int       `db:"images_count"`
-	Cover       string    `db:"cover"`
-	CoverUrl    string
-	Images      []Image
+func Initialize(c config.Config) {
+	conf = c
+	conf.Log.SetOutput(os.Stdout)
 }
 
-func (album *Album) SetCoverUrl(baseUrl string) {
-	album.CoverUrl = filepath.Join(baseUrl, album.DirName, album.Cover)
+type Album struct {
+	Id           int64     `db:"id"`
+	UpdatedAt    string    `db:"updated_at"`
+	CreatedAt    string    `db:"created_at"`
+	Name         string    `db:"name"`
+	DirName      string    `db:"dirname"`
+	Description  string    `db:"description"`
+	ImagesCount  int       `db:"images_count"`
+	Cover        string    `db:"cover"`
+	CoverUrl     string
+	Thumbnail    string    `db:"thumbnail"`
+	ThumbnailUrl string
+	Images       []Image
+}
+
+func (album *Album) SetCoverUrl() {
+	album.CoverUrl = filepath.Join(conf.BaseUrl, album.DirName, album.Cover)
+	return
+}
+
+func (album *Album) CoverPath() (path string) {
+	path = filepath.Join(conf.TargetDir, album.DirName, album.Cover)
+	return
+}
+
+func (album *Album) SetThumbnailUrl() {
+	album.ThumbnailUrl = filepath.Join(conf.ThumbnailUrl, album.Thumbnail)
 	return
 }
 
@@ -31,6 +49,7 @@ type Image struct {
 	CreatedAt   string    `db:"created_at"`
 	AlbumId     int64     `db:"album_id"`
 	Filename    string    `db:"filename"`
+	Thumbnail   string    `db:"thumbnail"`
 	Url         string
 	Exif
 }
@@ -38,6 +57,11 @@ type Image struct {
 
 func (image *Image) SetUrl(baseUrl string, dirName string) {
 	image.Url = filepath.Join(baseUrl, dirName, image.Filename)
+}
+
+func (image *Image) FilePath(dirName string) (path string) {
+	path = filepath.Join(conf.TargetDir, dirName, image.Filename)
+	return
 }
 
 type Exif struct {
