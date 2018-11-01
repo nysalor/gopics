@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"./config"
 	"./handlers"
+	"./model"
 )
 
 var dir = flag.String("d", "./images", "target dir")
@@ -16,6 +17,7 @@ var cacheDir = flag.String("c", "./.cache", "cache dir")
 var port = flag.Int("p", 5000, "server port number")
 var host = flag.String("h", "localhost", "server port number")  
 var baseUrl = flag.String("u", "http://localhost", "base url for images")
+var thumbnailUrl = flag.String("t", "http://localhost/cache", "base url for thumbnail")
 
 func main() {
 	flag.Parse()
@@ -34,11 +36,13 @@ func main() {
 		Port: *port,
 		Host: *host,
 		BaseUrl: *baseUrl,
+		ThumbnailUrl: *thumbnailUrl,
 		Log: logrus.New(),
 		DB: dbConf,
 	}
 
 	handler.Initialize(conf)
+	model.Initialize(conf)
 
 	e := echo.New()
 

@@ -6,13 +6,14 @@ import (
 )
 
 type Config struct {
-	TargetDir string
-	CacheDir  string
-	Port      int
-	Host      string
-	BaseUrl   string
-	Log       *logrus.Logger
-	DB        Database
+	TargetDir    string
+	CacheDir     string
+	Port         int
+	Host         string
+	BaseUrl      string
+	ThumbnailUrl string
+	Log          *logrus.Logger
+	DB           Database
 }
 
 type Database struct {
