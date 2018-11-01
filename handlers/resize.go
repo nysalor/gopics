@@ -2,17 +2,15 @@ package handler
 
 import (
 	"os"
-	"io"
 	"fmt"
+	"strings"
 	"image/jpeg"
 	"path/filepath"
-	"crypto/md5"
 	"github.com/nfnt/resize"
 )
 
 type Resizer struct {
 	OrigPath  string
-	Filename string
 	OutDir   string
 	Width    uint
 	Height   uint
@@ -24,34 +22,28 @@ func (resizer *Resizer) OutPath(filename string) (path string) {
 }
 
 func baseName(path string) (baseName string) {
-	baseName = filepath.Base(path[:len(path)-len(filepath.Ext(path))])
+	strs := strings.Split(filepath.Base(path), ".")
+	baseName = strings.Join(strs[:len(strs)-1], ".")
 	return
 }
 
 func resizeImage(resizer Resizer) (outfile string) {
 	file, err := os.Open(resizer.OrigPath)
-	if err != nil {
-		return
-	}
 	img, err := jpeg.Decode(file)
 	if err != nil {
-		return
+		panic(err)
 	}
 	file.Close()
 
-	h := md5.New()
-	if _, err := io.Copy(h, file); err != nil {
-		return
-	}
-	csum := h.Sum(nil)
-	baseName := baseName(resizer.Filename)
-	outfile = fmt.Sprintf("%s-%x.jpg", baseName, csum)
+	csum := checkSum(resizer.OrigPath)
+	baseName := baseName(resizer.OrigPath)
+	outfile = fmt.Sprintf("%s-%s.jpg", baseName, csum)
 	m := resize.Thumbnail(resizer.Width, resizer.Height, img, resize.Lanczos3)
-	outpath := filepath.Join(resizer.OutPath(outfile), outfile)
+	outpath := filepath.Join(conf.CacheDir, outfile)
 
 	out, err := os.Create(outpath)
 	if err != nil {
-		return
+		panic(err)
 	}
 	defer out.Close()
 	jpeg.Encode(out, m, nil)

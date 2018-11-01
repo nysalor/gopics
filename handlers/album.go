@@ -44,7 +44,8 @@ func loadAlbumCache(albumId int) (album model.Album) {
 	if err != nil {
 		return
 	}
-	album.SetCoverUrl(Config.BaseUrl)
+	album.SetCoverUrl()
+	album.SetThumbnailUrl()
 
 	return
 }
@@ -62,10 +63,9 @@ func loadImageCache(album model.Album) (images []model.Image) {
 		if err != nil {
 			return
 		}
-		image.SetUrl(Config.BaseUrl, album.DirName)
+		image.SetUrl(conf.BaseUrl, album.DirName)
 		images = append(images, image)
 	}
-
 	return
 }
 
@@ -73,7 +73,7 @@ func updateAlbum(album model.Album, images []model.Image) bool {
 	newFiles := []string{}
 	missingImages := []model.Image{}
 	updateImages := []model.Image{}
-	files := loadFile(Config.TargetDir, album.DirName)
+	files := loadFile(conf.TargetDir, album.DirName)
 	r := regexp.MustCompile(`\.(jpg|jpeg|png|gif)$`)
 
 	for _,  file := range files {
@@ -134,10 +134,12 @@ func appendImage(files []string, album model.Album) (result bool) {
 	now :=  nowText()
 	for _, file := range files {
 		image := mergeExif(model.Image{Filename: file, AlbumId: album.Id}, album)
-		res, err := connection.NamedExec(`INSERT INTO images (album_id, filename, maker, model, lens_maker, lens_model, f_number, focal_length, iso, latitude, longitude, took_at, updated_at, created_at) VALUES (:album_id, :filename, :maker, :model, :lens_maker, :lens_model, :f_number, :focal_length, :iso, :latitude, :longitude, :took_at, :updated_at, :created_at)`,
+		thumbnail := createThumbnail(image.FilePath(album.DirName))
+		res, err := connection.NamedExec(`INSERT INTO images (album_id, filename, thumbnail, maker, model, lens_maker, lens_model, f_number, focal_length, iso, latitude, longitude, took_at, updated_at, created_at) VALUES (:album_id, :filename, :thumbnail, :maker, :model, :lens_maker, :lens_model, :f_number, :focal_length, :iso, :latitude, :longitude, :took_at, :updated_at, :created_at)`,
 			map[string]interface{} {
 				"album_id": image.AlbumId,
 				"filename": image.Filename,
+				"thumbnail": thumbnail,
 				"maker": image.Maker,
 				"model": image.Model,
 				"lens_maker": image.LensMaker,
@@ -220,10 +222,12 @@ func initializeCover(album model.Album) bool {
 	rows := connection.QueryRow(sql, album.Id)
 	var filename string
 	rows.Scan(&filename)
+	album.Cover = filename
+	thumbnail := createThumbnail(album.CoverPath())
 
 	if filename != "" {
 		now :=  nowText()
-		_, err := connection.Exec("update albums set cover = ?, updated_at = ? WHERE id = ?", filename, now, album.Id)
+		_, err := connection.Exec("update albums set cover = ?, thumbnail = ?, updated_at = ? WHERE id = ?", filename, thumbnail, now, album.Id)
 		if err != nil {
 			return false
 		}
@@ -234,7 +238,7 @@ func initializeCover(album model.Album) bool {
 }
 
 func mergeExif(image model.Image, album model.Album) model.Image {
-	exif := decodeExif(filepath.Join(Config.TargetDir, album.DirName, image.Filename))
+	exif := decodeExif(filepath.Join(conf.TargetDir, album.DirName, image.Filename))
 
 	image.Maker = exif.Maker
 	image.Model = exif.Model
@@ -251,7 +255,7 @@ func mergeExif(image model.Image, album model.Album) model.Image {
 }
 
 func updateText(album model.Album) bool {
-	path := filepath.Join(Config.TargetDir, album.DirName, "album.txt")
+	path := filepath.Join(conf.TargetDir, album.DirName, "album.txt")
 
 	f, err := os.Open(path)
 	if err != nil {
@@ -269,15 +273,19 @@ func updateText(album model.Album) bool {
 	cover := lines[2]
 
 	if cover != "" {
-		_, err := os.Stat(filepath.Join(Config.TargetDir, album.DirName, cover))
+		_, err := os.Stat(filepath.Join(conf.TargetDir, album.DirName, cover))
 		if os.IsNotExist(err) {
 			cover = ""
 		}
 	}
 
 	if ((album.Name != name) || (album.Description != description) || (album.Cover != cover)) {
+		album.Name = name
+		album.Description = description
+		album.Cover = cover
+		thumbnail := createThumbnail(album.CoverPath())
 		now :=  nowText()
-		_, err = connection.Exec("update albums set name = ?, description = ?, cover = ?, updated_at = ? WHERE id = ?", name, description, cover, now, album.Id)
+		_, err = connection.Exec("update albums set name = ?, description = ?, cover = ?, thumbnail = ?, updated_at = ? WHERE id = ?", name, description, cover, thumbnail, now, album.Id)
 		if err != nil {
 			panic(err)
 		}

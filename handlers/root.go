@@ -48,7 +48,7 @@ func UpdatePage() echo.HandlerFunc {
 }
 
 func UpdateDirs(albums []model.Album) bool {
-	dirs := loadDir(Config.TargetDir)
+	dirs := loadDir(conf.TargetDir)
 	res := updateCache(dirs, albums)
 	return res
 }
@@ -109,6 +109,9 @@ func appendCache(dirs []string) (result bool) {
 				"images_count": 0,
 			})
 		albumId, err := res.LastInsertId()
+		if err != nil {
+			return
+		}
 		album.Id = albumId
 
 		rows, _ := res.RowsAffected()
@@ -137,7 +140,7 @@ func removeCache(albums []model.Album) (result bool) {
 }
 
 func loadCache() (albums []model.Album) {
-	sql := "select id, name, description, dirname, images_count, cover, updated_at, created_at from albums"
+	sql := "select id, name, description, dirname, images_count, cover, thumbnail, updated_at, created_at from albums"
 
 	rows, err := connection.Queryx(sql)
 	if err != nil {
@@ -150,7 +153,8 @@ func loadCache() (albums []model.Album) {
 		if err != nil {
 			return
 		}
-		album.SetCoverUrl(Config.BaseUrl)
+		album.SetCoverUrl()
+		album.SetThumbnailUrl()
 		albums = append(albums, album)
 	}
 
