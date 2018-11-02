@@ -51,7 +51,7 @@ func loadAlbumCache(albumId int) (album model.Album) {
 }
 
 func loadImageCache(album model.Album) (images []model.Image) {
-	sql := "select id, album_id, filename, maker, model, lens_maker, lens_model, took_at, f_number, focal_length, iso, latitude, longitude, updated_at, created_at from images where album_id = ? order by took_at asc"
+	sql := "select id, album_id, filename, thumbnail, maker, model, lens_maker, lens_model, took_at, f_number, focal_length, iso, latitude, longitude, updated_at, created_at from images where album_id = ? order by took_at asc"
 	rows, err := connection.Queryx(sql, album.Id)
 	if err != nil {
 		return
@@ -63,7 +63,8 @@ func loadImageCache(album model.Album) (images []model.Image) {
 		if err != nil {
 			return
 		}
-		image.SetUrl(conf.BaseUrl, album.DirName)
+		image.SetUrl(album.DirName)
+		image.SetThumbnailUrl()
 		images = append(images, image)
 	}
 	return

@@ -44,23 +44,30 @@ func (album *Album) SetThumbnailUrl() {
 }
 
 type Image struct {
-	Id          int64     `db:"id"`
-	UpdatedAt   string    `db:"updated_at"`
-	CreatedAt   string    `db:"created_at"`
-	AlbumId     int64     `db:"album_id"`
-	Filename    string    `db:"filename"`
-	Thumbnail   string    `db:"thumbnail"`
-	Url         string
+	Id           int64     `db:"id"`
+	UpdatedAt    string    `db:"updated_at"`
+	CreatedAt    string    `db:"created_at"`
+	AlbumId      int64     `db:"album_id"`
+	Filename     string    `db:"filename"`
+	Thumbnail    string    `db:"thumbnail"`
+	Url          string
+	ThumbnailUrl string
 	Exif
 }
 
 
-func (image *Image) SetUrl(baseUrl string, dirName string) {
-	image.Url = filepath.Join(baseUrl, dirName, image.Filename)
+func (image *Image) SetUrl(dirName string) {
+	image.Url = filepath.Join(conf.BaseUrl, dirName, image.Filename)
+	return
 }
 
 func (image *Image) FilePath(dirName string) (path string) {
 	path = filepath.Join(conf.TargetDir, dirName, image.Filename)
+	return
+}
+
+func (image *Image) SetThumbnailUrl() {
+	image.ThumbnailUrl = filepath.Join(conf.ThumbnailUrl, image.Thumbnail)
 	return
 }
 
