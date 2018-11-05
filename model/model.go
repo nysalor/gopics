@@ -29,7 +29,7 @@ type Album struct {
 }
 
 func (album *Album) SetCoverUrl() {
-	album.CoverUrl = filepath.Join(conf.BaseUrl, album.DirName, album.Cover)
+	album.CoverUrl = conf.BaseUrl + album.CoverPath()
 	return
 }
 
@@ -39,7 +39,7 @@ func (album *Album) CoverPath() (path string) {
 }
 
 func (album *Album) SetThumbnailUrl() {
-	album.ThumbnailUrl = filepath.Join(conf.ThumbnailUrl, album.Thumbnail)
+	album.ThumbnailUrl = conf.ThumbnailUrl + album.Thumbnail
 	return
 }
 
@@ -67,7 +67,7 @@ func (image *Image) FilePath(dirName string) (path string) {
 }
 
 func (image *Image) SetThumbnailUrl() {
-	image.ThumbnailUrl = filepath.Join(conf.ThumbnailUrl, image.Thumbnail)
+	image.ThumbnailUrl = conf.ThumbnailUrl + image.Thumbnail
 	return
 }
 
