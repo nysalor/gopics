@@ -39,7 +39,7 @@ func (album *Album) CoverPath() (path string) {
 }
 
 func (album *Album) SetThumbnailUrl() {
-	album.ThumbnailUrl = conf.ThumbnailUrl + album.Thumbnail
+	album.ThumbnailUrl = conf.ThumbnailUrl + "/" + album.Thumbnail
 	return
 }
 
@@ -67,7 +67,7 @@ func (image *Image) FilePath(dirName string) (path string) {
 }
 
 func (image *Image) SetThumbnailUrl() {
-	image.ThumbnailUrl = conf.ThumbnailUrl + image.Thumbnail
+	image.ThumbnailUrl = conf.ThumbnailUrl + "/" + image.Thumbnail
 	return
 }
 

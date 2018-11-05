@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"strings"
 	"os"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
@@ -21,6 +22,8 @@ var thumbnailUrl = flag.String("t", "http://localhost/cache", "base url for thum
 
 func main() {
 	flag.Parse()
+	baseUrlTrim := strings.Trim(*baseUrl, "/")
+	thumbnailUrlTrim := strings.Trim(*thumbnailUrl, "/")
 
 	dbConf := config.Database{
 		User: getEnv("DB_USER", "gopics"),
@@ -35,8 +38,8 @@ func main() {
 		CacheDir: *cacheDir,
 		Port: *port,
 		Host: *host,
-		BaseUrl: *baseUrl,
-		ThumbnailUrl: *thumbnailUrl,
+		BaseUrl: baseUrlTrim,
+		ThumbnailUrl: thumbnailUrlTrim,
 		Log: logrus.New(),
 		DB: dbConf,
 	}
