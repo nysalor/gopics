@@ -57,7 +57,7 @@ type Image struct {
 
 
 func (image *Image) SetUrl(dirName string) {
-	image.Url = filepath.Join(conf.BaseUrl, dirName, image.Filename)
+	image.Url = conf.BaseUrl + dirName + "/" + image.Filename
 	return
 }
 
