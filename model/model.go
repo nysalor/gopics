@@ -57,9 +57,8 @@ type Image struct {
 	Exif
 }
 
-
 func (image *Image) SetUrl(dirName string) {
-	image.Url = conf.BaseUrl + dirName + "/" + image.Filename
+	image.Url = conf.BaseUrl + "/" + dirName + "/" + image.Filename
 	return
 }
 
