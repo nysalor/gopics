@@ -75,14 +75,15 @@ func (image *Image) SetThumbnailUrl() {
 }
 
 type Exif struct {
-	Maker       string    `db:"maker"`
-	Model       string    `db:"model"`
-	LensMaker   string    `db:"lens_maker"`
-	LensModel   string    `db:"lens_model"`
-	TookAt      string    `db:"took_at"`
-	FNumber     string    `db:"f_number"`
-	FocalLength string    `db:"focal_length"`
-	Iso         string    `db:"iso"`
-	Latitude    float64   `db:"latitude"`
-	Longitude   float64   `db:"longitude"`
+	Maker         string    `db:"maker"`
+	Model         string    `db:"model"`
+	LensMaker     string    `db:"lens_maker"`
+	LensModel     string    `db:"lens_model"`
+	TookAt        string    `db:"took_at"`
+	FNumber       string    `db:"f_number"`
+	FocalLength   string    `db:"focal_length"`
+	Iso           string    `db:"iso"`
+	ExposureTime  string    `db:"exposure"`
+	Latitude      float64   `db:"latitude"`
+	Longitude     float64   `db:"longitude"`
 }

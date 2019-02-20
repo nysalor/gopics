@@ -3,6 +3,7 @@ package handler
 import (
 	"os"
 	"strconv"
+	"strings"
 	_ "fmt"
 	"github.com/rwcarlsen/goexif/exif"
 	"../model"
@@ -36,10 +37,11 @@ func decodeExif(path string) model.Exif {
 		FNumber: getFNumber(x),
 		FocalLength: getFocal(x),
 		Iso: getExifTag(x, exif.ISOSpeedRatings),
+		ExposureTime: getExifTag(x, exif.ExposureTime),
 		Latitude: latlong.Latitude,
 		Longitude: latlong.Longitude,
 	}
-	
+
 	return ex
 }
 
@@ -48,7 +50,7 @@ func getExifTag(x *exif.Exif, fn exif.FieldName) string {
 	if err != nil {
 		return ""
 	}
-	return tag.String()
+	return strings.Replace(tag.String(), "\"", "", -1)
 }
 
 func getLatLong(x *exif.Exif) LatLong {

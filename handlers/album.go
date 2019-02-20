@@ -51,7 +51,7 @@ func loadAlbumCache(albumId int) (album model.Album) {
 }
 
 func loadImageCache(album model.Album) (images []model.Image) {
-	sql := "select id, album_id, filename, thumbnail, maker, model, lens_maker, lens_model, took_at, f_number, focal_length, iso, latitude, longitude, updated_at, created_at from images where album_id = ? order by took_at asc"
+	sql := "select id, album_id, filename, thumbnail, maker, model, lens_maker, lens_model, took_at, f_number, focal_length, iso, exposure, latitude, longitude, updated_at, created_at from images where album_id = ? order by took_at asc"
 	rows, err := connection.Queryx(sql, album.Id)
 	if err != nil {
 		return
@@ -136,7 +136,7 @@ func appendImage(files []string, album model.Album) (result bool) {
 	for _, file := range files {
 		image := mergeExif(model.Image{Filename: file, AlbumId: album.Id}, album)
 		thumbnail := createThumbnail(image.FilePath(album.DirName))
-		res, err := connection.NamedExec(`INSERT INTO images (album_id, filename, thumbnail, maker, model, lens_maker, lens_model, f_number, focal_length, iso, latitude, longitude, took_at, updated_at, created_at) VALUES (:album_id, :filename, :thumbnail, :maker, :model, :lens_maker, :lens_model, :f_number, :focal_length, :iso, :latitude, :longitude, :took_at, :updated_at, :created_at)`,
+		res, err := connection.NamedExec(`INSERT INTO images (album_id, filename, thumbnail, maker, model, lens_maker, lens_model, f_number, focal_length, iso, exposure, latitude, longitude, took_at, updated_at, created_at) VALUES (:album_id, :filename, :thumbnail, :maker, :model, :lens_maker, :lens_model, :f_number, :focal_length, :iso, :exposure, :latitude, :longitude, :took_at, :updated_at, :created_at)`,
 			map[string]interface{} {
 				"album_id": image.AlbumId,
 				"filename": image.Filename,
@@ -148,6 +148,7 @@ func appendImage(files []string, album model.Album) (result bool) {
 				"f_number": image.FNumber,
 				"focal_length": image.FocalLength,
 				"iso": image.Iso,
+				"exposure": image.ExposureTime,
 				"latitude": image.Latitude,
 				"longitude": image.Longitude,
 				"took_at": image.TookAt,
@@ -178,7 +179,7 @@ func updateImage(images []model.Image) (result bool) {
 	result = false
 	now :=  nowText()
 	for _, image := range images {
-		res, err := connection.NamedExec(`UPDATE images SET maker = :maker, model = :model, lens_maker = :lens_maker, lens_model = :lens_model, f_number = :f_number, focal_length = :focal_length, iso = :iso, latitude = :latitude, longitude = :longitude, took_at = :took_at, updated_at = :updated_at WHERE id = :id`,
+		res, err := connection.NamedExec(`UPDATE images SET maker = :maker, model = :model, lens_maker = :lens_maker, lens_model = :lens_model, f_number = :f_number, focal_length = :focal_length, iso = :iso, exposure = :exposure, latitude = :latitude, longitude = :longitude, took_at = :took_at, updated_at = :updated_at WHERE id = :id`,
 			map[string]interface{} {
 				"id": image.Id,
 				"maker": image.Maker,
@@ -188,6 +189,7 @@ func updateImage(images []model.Image) (result bool) {
 				"f_number": image.FNumber,
 				"focal_length": image.FocalLength,
 				"iso": image.Iso,
+				"exposure": image.ExposureTime,
 				"latitude": image.Latitude,
 				"longitude": image.Longitude,
 				"took_at": image.TookAt,
@@ -249,6 +251,7 @@ func mergeExif(image model.Image, album model.Album) model.Image {
 	image.FNumber = exif.FNumber
 	image.FocalLength = exif.FocalLength
 	image.Iso = exif.Iso
+	image.ExposureTime = exif.ExposureTime
 	image.Latitude = exif.Latitude
 	image.Longitude = exif.Longitude
 
