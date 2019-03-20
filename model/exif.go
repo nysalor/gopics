@@ -1,4 +1,4 @@
-package handler
+package model
 
 import (
 	"os"
@@ -6,15 +6,28 @@ import (
 	"strings"
 	_ "fmt"
 	"github.com/rwcarlsen/goexif/exif"
-	"../model"
 )
+
+type Exif struct {
+	Maker         string    `db:"maker"`
+	Model         string    `db:"model"`
+	LensMaker     string    `db:"lens_maker"`
+	LensModel     string    `db:"lens_model"`
+	TookAt        string    `db:"took_at"`
+	FNumber       string    `db:"f_number"`
+	FocalLength   string    `db:"focal_length"`
+	Iso           string    `db:"iso"`
+	ExposureTime  string    `db:"exposure"`
+	Latitude      float64   `db:"latitude"`
+	Longitude     float64   `db:"longitude"`
+}
 
 type LatLong struct {
 	Latitude float64
 	Longitude float64
 }
 
-func decodeExif(path string) model.Exif {
+func DecodeExif(path string) (ex Exif) {
 	f, err := os.Open(path)
 	if err != nil {
 		panic(err)
@@ -28,7 +41,7 @@ func decodeExif(path string) model.Exif {
 	datetime, _ := x.DateTime()
 	latlong := getLatLong(x)
 
-	ex := model.Exif{
+	ex = Exif{
 		Maker: getExifTag(x, exif.Make),
 		Model: getExifTag(x, exif.Model),
 		LensMaker:getExifTag(x, exif.LensMake),

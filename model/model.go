@@ -2,88 +2,46 @@ package model
 
 import (
 	"os"
-	"path/filepath"
+	"time"
+	"io/ioutil"
+	"crypto/md5"
+	"encoding/hex"
+	"github.com/jmoiron/sqlx"
 	"../config"
+	"../db"
 )
 
+var connection *sqlx.DB
 var conf config.Config
 
 func Initialize(c config.Config) {
 	conf = c
 	conf.Log.SetOutput(os.Stdout)
+	connection = db.Connect(conf.DB)
 }
 
-type Album struct {
-	Id           int64     `db:"id"`
-	UpdatedAt    string    `db:"updated_at"`
-	CreatedAt    string    `db:"created_at"`
-	Name         string    `db:"name"`
-	DirName      string    `db:"dirname"`
-	Description  string    `db:"description"`
-	ImagesCount  int       `db:"images_count"`
-	Cover        string    `db:"cover"`
-	CoverUrl     string
-	Thumbnail    string    `db:"thumbnail"`
-	ThumbnailUrl string
-	Images       []Image
+func nowText() string {
+	return time.Now().Format("2006-01-02 15:04:05")
 }
 
-func (album *Album) SetCoverUrl() {
-	album.CoverUrl = conf.BaseUrl + album.CoverPath()
-	return
-}
-
-func (album *Album) CoverPath() (path string) {
-	path = filepath.Join(conf.TargetDir, album.DirName, album.Cover)
-	return
-}
-
-func (album *Album) SetThumbnailUrl() {
-	if album.Thumbnail != "" {
-		album.ThumbnailUrl = conf.ThumbnailUrl + "/" + album.Thumbnail
+func createThumbnail(path string) (thumbnail string) {
+	resizer := Resizer{
+		OrigPath: path,
+		OutDir: conf.CacheDir,
+		Width: 640,
+		Height: 480,
 	}
+	thumbnail = resizer.ResizeImage()
 	return
 }
 
-type Image struct {
-	Id           int64     `db:"id"`
-	UpdatedAt    string    `db:"updated_at"`
-	CreatedAt    string    `db:"created_at"`
-	AlbumId      int64     `db:"album_id"`
-	Filename     string    `db:"filename"`
-	Thumbnail    string    `db:"thumbnail"`
-	Url          string
-	ThumbnailUrl string
-	Exif
-}
-
-func (image *Image) SetUrl(dirName string) {
-	image.Url = conf.BaseUrl + "/" + dirName + "/" + image.Filename
-	return
-}
-
-func (image *Image) FilePath(dirName string) (path string) {
-	path = filepath.Join(conf.TargetDir, dirName, image.Filename)
-	return
-}
-
-func (image *Image) SetThumbnailUrl() {
-	if image.Thumbnail != "" {
-		image.ThumbnailUrl = conf.ThumbnailUrl + "/" + image.Thumbnail
+func checkSum(path string) (checkSum string) {
+	file, err := os.Open(path)
+	if err != nil {
+		panic(err)
 	}
+	data, err := ioutil.ReadAll(file)
+	h := md5.Sum(data)
+	checkSum = hex.EncodeToString(h[:])
 	return
-}
-
-type Exif struct {
-	Maker         string    `db:"maker"`
-	Model         string    `db:"model"`
-	LensMaker     string    `db:"lens_maker"`
-	LensModel     string    `db:"lens_model"`
-	TookAt        string    `db:"took_at"`
-	FNumber       string    `db:"f_number"`
-	FocalLength   string    `db:"focal_length"`
-	Iso           string    `db:"iso"`
-	ExposureTime  string    `db:"exposure"`
-	Latitude      float64   `db:"latitude"`
-	Longitude     float64   `db:"longitude"`
 }

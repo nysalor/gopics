@@ -1,4 +1,4 @@
-package handler
+package model
 
 import (
 	"os"
@@ -27,7 +27,7 @@ func baseName(path string) (baseName string) {
 	return
 }
 
-func resizeImage(resizer Resizer) (outfile string) {
+func (resizer *Resizer) ResizeImage() (outfile string) {
 	file, err := os.Open(resizer.OrigPath)
 	img, err := jpeg.Decode(file)
 	if err != nil {
