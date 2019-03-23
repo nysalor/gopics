@@ -21,12 +21,12 @@ type Album struct {
 	CoverUrl     string
 	Thumbnail    string    `db:"thumbnail"`
 	ThumbnailUrl string
-	Locked       bool      `db:"locked"`
+	Locked       int       `db:"locked"`
 	Images       []Image
 }
 
 func Albums() (albums []Album) {
-	sql := "select id, name, description, dirname, images_count, cover, thumbnail, updated_at, created_at from albums"
+	sql := "select id, name, description, dirname, images_count, cover, thumbnail, locked, updated_at, created_at from albums"
 
 	rows, err := connection.Queryx(sql)
 	if err != nil {
@@ -41,6 +41,7 @@ func Albums() (albums []Album) {
 		}
 		album.SetCoverUrl()
 		album.SetThumbnailUrl()
+		album.LoadImages()
 		albums = append(albums, album)
 	}
 
@@ -61,7 +62,7 @@ func FindAlbum(id int) (album Album) {
 }
 
 func FindAlbumByName(dirName string) (album Album) {
-	sql := "select id, name, description, dirname, images_count, cover, thumbnail, updated_at, created_at from albums where name = ?"
+	sql := "select id, name, description, dirname, images_count, cover, thumbnail, locked, updated_at, created_at from albums where name = ?"
 	err := connection.Get(&album, sql, dirName)
 	if err != nil {
 		return
@@ -77,7 +78,7 @@ func AppendAlbum(dir string) (album Album) {
 	now :=  time.Now().Format("2006-01-02 15:04:05")
 	album = Album{Name: dir, DirName: dir, UpdatedAt: now, CreatedAt: now}
 
-	res, err := connection.NamedExec(`INSERT INTO albums (name, dirname, updated_at, created_at, images_count) VALUES (:name, :dirname, :updated_at, :created_at, :images_count)`,
+	res, err := connection.NamedExec(`INSERT INTO albums (name, dirname, updated_at, created_at, images_count, locked) VALUES (:name, :dirname, :updated_at, :created_at, :images_count, 1)`,
 		map[string]interface{} {
 			"name": album.Name,
 			"dirname": album.DirName,
@@ -94,23 +95,21 @@ func AppendAlbum(dir string) (album Album) {
 }
 
 func (album *Album) SetCoverUrl() {
-	album.CoverUrl = conf.BaseUrl + "/" + album.CoverPath()
+	if album.Cover != "" {
+		album.CoverUrl = conf.BaseUrl + "/" + filepath.Join(album.DirName, album.Cover)
+	}
 	return
 }
 
 func (album *Album) CoverPath() (path string) {
-	if album.Cover == "" {
-		path = "notfound.png"
-	} else {
-		path = filepath.Join(album.DirName, album.Cover)
+	if album.Cover != "" {
+		path = filepath.Join(conf.TargetDir, album.DirName, album.Cover)
 	}
 	return
 }
 
 func (album *Album) SetThumbnailUrl() {
-	if album.Thumbnail == "" {
-		album.ThumbnailUrl = conf.BaseUrl + "/" + "notfound.png"
-	} else {
+	if album.Thumbnail != "" {
 		album.ThumbnailUrl = conf.ThumbnailUrl + "/" + album.Thumbnail
 	}
 	return
@@ -124,7 +123,7 @@ func (album *Album) LoadImages() {
 	}
 
 	var images []Image
-	
+
 	for rows.Next() {
 		image := Image{}
 		err := rows.StructScan(&image)
@@ -173,6 +172,8 @@ func (album *Album) AppendImage(file string) (result bool) {
 	if err == nil &&  rows > 0 {
 		result = true
 	}
+
+	DebugLog("append: " + image.Filename + " -> " + album.Name)
 	return
 }
 
@@ -288,3 +289,20 @@ func (album *Album) Remove() (result bool) {
 	return
 }
 
+func (album *Album) Lock() {
+	DebugLog("locked: " + album.Name)
+	album.Locked = 1
+	_, err := connection.Exec("update albums set locked = 1 WHERE id = ?", album.Id)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (album *Album) Unlock() {
+	DebugLog("unlocked: " + album.Name)
+	album.Locked = 0
+	_, err := connection.Exec("update albums set locked = 0 WHERE id = ?", album.Id)
+	if err != nil {
+		panic(err)
+	}
+}
