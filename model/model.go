@@ -45,3 +45,10 @@ func checkSum(path string) (checkSum string) {
 	checkSum = hex.EncodeToString(h[:])
 	return
 }
+
+func DebugLog(str string) {
+	if conf.Verbose {
+		conf.Log.Info("[" + nowText() + "] " + str)
+	}
+	return
+}

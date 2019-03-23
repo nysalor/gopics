@@ -3,6 +3,7 @@ package handler
 import (
 	"os"
 	"strings"
+	"time"
 	"path/filepath"
 	"io/ioutil"
 	"github.com/jmoiron/sqlx"
@@ -43,6 +44,17 @@ func loadFiles(target string, dir string) (files []os.FileInfo) {
 		
 	if err != nil {
 		return nil
+	}
+	return
+}
+
+func nowText() string {
+	return time.Now().Format("2006-01-02 15:04:05")
+}
+
+func DebugLog(str string) {
+	if conf.Verbose {
+		conf.Log.Info("[" + nowText() + "] " + str)
 	}
 	return
 }

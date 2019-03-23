@@ -14,6 +14,7 @@ type Config struct {
 	ThumbnailUrl string
 	Log          *logrus.Logger
 	DB           Database
+	Verbose      bool
 }
 
 type Database struct {

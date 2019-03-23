@@ -19,6 +19,7 @@ var port = flag.Int("p", 5000, "server port number")
 var host = flag.String("h", "localhost", "server port number")  
 var baseUrl = flag.String("u", "http://localhost", "base url for images")
 var thumbnailUrl = flag.String("t", "http://localhost/cache", "base url for thumbnail")
+var verbose = flag.Bool("v", false, "verbose mode")
 
 func main() {
 	flag.Parse()
@@ -42,6 +43,7 @@ func main() {
 		ThumbnailUrl: thumbnailUrlTrim,
 		Log: logrus.New(),
 		DB: dbConf,
+		Verbose: *verbose,
 	}
 
 	handler.Initialize(conf)
