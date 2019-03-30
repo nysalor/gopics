@@ -74,18 +74,37 @@ func syncAlbums(albums []model.Album) (result bool) {
 	c := make(chan bool, 10)
 
 	for _, missingAlbum := range missingAlbums {
-		c <- true
-		wg.Add(1)
 		if missingAlbum.Locked == 0 {
-			go removeAlbumHandler(c, wg, missingAlbum)
+			c <- true
+			wg.Add(1)
+			go func(a model.Album) {
+				defer func() { <-c }()
+				DebugLog("removing: " + a.Name)
+				a.Remove()
+				wg.Done()
+			}(missingAlbum)
 		}
 	}
 
 	for _, missingDir := range missingDirs {
 		c <- true
 		wg.Add(1)
-		go appendAlbumHandler(c, wg, missingDir)
+		go func(d string) {
+			defer func() { <-c }()
+			DebugLog("appending: " + d)
+			album := model.AppendAlbum(d)
+			if album.Id > 0 {
+				DebugLog("created: " + album.Name)
+				album.InitializeImages()
+				DebugLog("initialized: " + album.Name)
+				album.InitializeCover()
+				album.UpdateText()
+				album.Unlock()
+				wg.Done()
+			}
+		}(missingDir)
 	}
+
 	wg.Wait()
 
 	for _, syncAlbum := range syncAlbums {
@@ -96,28 +115,4 @@ func syncAlbums(albums []model.Album) (result bool) {
 
 
 	return result
-}
-
-func removeAlbumHandler(c chan bool, wg *sync.WaitGroup, album model.Album) {
-	defer func() { <-c }()
-	DebugLog("removing: " + album.Name)
-	album.Remove()
-	wg.Done()
-	return
-}
-
-func appendAlbumHandler(c chan bool, wg *sync.WaitGroup, dirname string) {
-	defer func() { <-c }()
-	DebugLog("appending: " + dirname)
-	album := model.AppendAlbum(dirname)
-	if album.Id > 0 {
-		DebugLog("created: " + album.Name)
-		album.InitializeImages()
-		DebugLog("initialized: " + album.Name)
-		album.InitializeCover()
-		album.UpdateText()
-		album.Unlock()
-	}
-	wg.Done()
-	return
 }

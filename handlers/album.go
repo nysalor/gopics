@@ -86,19 +86,34 @@ func SyncAlbum(album model.Album) {
 	for _, missingImage := range missingImages {
 		c <- true
 		wg.Add(1)
-		go removeImageHandler(c, wg, missingImage)
+		go func(i model.Image) {
+			defer func() { <-c }()
+			DebugLog("removing: " + i.Filename)
+			i.Remove()
+			wg.Done()
+		}(missingImage)
 	}
 
 	for _, missingFile := range missingFiles {
 		c <- true
 		wg.Add(1)
-		go appendImageHandler(c, wg, album, missingFile)
+		go func(f string) {
+			defer func() { <-c }()
+			image := album.AppendImage(f)
+			DebugLog("appended: " + image.Filename)
+			wg.Done()
+		}(missingFile)
 	}
 
 	for _, updateImage := range updateImages {
 		c <- true
 		wg.Add(1)
-		go updateImageHandler(c, wg, updateImage)
+		go func(i model.Image) {
+			defer func() { <-c }()
+			i.Update()
+			DebugLog("upodated: " + i.Filename)
+			wg.Done()
+		}(updateImage)
 	}
 
 	wg.Wait()
@@ -106,30 +121,6 @@ func SyncAlbum(album model.Album) {
 	album.UpdateText()
 	album.UpdateCount()
 	album.Unlock()
-
-	return
-}
-
-func removeImageHandler(c chan bool, wg *sync.WaitGroup, image model.Image) {
-	defer func() { <-c }()
-	image.Remove()
-	wg.Done()
-
-	return
-}
-
-func appendImageHandler(c chan bool, wg *sync.WaitGroup, album model.Album, filename string) {
-	defer func() { <-c }()
-	album.AppendImage(filename)
-	wg.Done()
-
-	return
-}
-
-func updateImageHandler(c chan bool, wg *sync.WaitGroup, image model.Image) {
-	defer func() { <-c }()
-	image.Update()
-	wg.Done()
 
 	return
 }
