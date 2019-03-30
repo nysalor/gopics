@@ -74,6 +74,17 @@ func FindAlbumByName(dirName string) (album Album) {
 	return
 }
 
+func SearchAlbums(str string) (albums []Album) {
+	sql := "select id, name, description, dirname, images_count, cover, thumbnail, locked, updated_at, created_at from albums where name like ? or description like ?"
+
+	err := connection.Select(&albums, sql, "%" + str + "%", "%" + str + "%")
+	if err != nil {
+		panic(err)
+	}
+
+	return albums
+}
+
 func AppendAlbum(dir string) (album Album) {
 	now :=  time.Now().Format("2006-01-02 15:04:05")
 	album = Album{Name: dir, DirName: dir, UpdatedAt: now, CreatedAt: now}
@@ -141,11 +152,9 @@ func (album *Album) LoadImages() {
 	return
 }
 
-func (album *Album) AppendImage(file string) (result bool) {
-	result = false
-
+func (album *Album) AppendImage(file string) (image Image) {
 	now :=  nowText()
-	image := Image{Filename: file, AlbumId: album.Id, Album: *album}
+	image = Image{Filename: file, AlbumId: album.Id, Album: *album}
 	image.MergeExif()
 	thumbnail := createThumbnail(image.FilePath())
 	res, err := connection.NamedExec(`INSERT INTO images (album_id, filename, thumbnail, maker, model, lens_maker, lens_model, f_number, focal_length, iso, exposure, latitude, longitude, took_at, updated_at, created_at) VALUES (:album_id, :filename, :thumbnail, :maker, :model, :lens_maker, :lens_model, :f_number, :focal_length, :iso, :exposure, :latitude, :longitude, :took_at, :updated_at, :created_at)`,
@@ -169,8 +178,8 @@ func (album *Album) AppendImage(file string) (result bool) {
 		})
 	rows, _ := res.RowsAffected()
 
-	if err == nil &&  rows > 0 {
-		result = true
+	if err != nil &&  rows > 0 {
+		return
 	}
 
 	DebugLog("append: " + image.Filename + " -> " + album.Name)

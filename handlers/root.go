@@ -9,12 +9,12 @@ import (
 	"../model"
 )
 
-type indexResult struct {
+type albumsResult struct {
 	Albums []model.Album
 }
 
-type updateResult struct {
-	Updated bool
+type searchParam struct {
+	SearchString string `json:"search"`
 }
 
 func IndexPage() echo.HandlerFunc {
@@ -22,16 +22,20 @@ func IndexPage() echo.HandlerFunc {
 		albums := model.Albums()
 		go syncAlbums(albums)
 
-		return  c.JSON(http.StatusOK, indexResult{Albums: albums})
+		return  c.JSON(http.StatusOK, albumsResult{Albums: albums})
 	}
 }
 
-func UpdatePage() echo.HandlerFunc {
+func SearchPage() echo.HandlerFunc {
 	return func(c echo.Context) error {
-		albums := model.Albums()
-		go syncAlbums(albums)
+		param := new(searchParam)
+		err := c.Bind(param)
+		if err != nil {
+			return err
+		}
+		albums := model.SearchAlbums(param.SearchString)
 
-		return  c.JSON(http.StatusOK, indexResult{Albums: albums})
+		return  c.JSON(http.StatusOK, albumsResult{Albums: albums})
 	}
 }
 
