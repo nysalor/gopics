@@ -77,9 +77,21 @@ func FindAlbumByName(dirName string) (album Album) {
 func SearchAlbums(str string) (albums []Album) {
 	sql := "select id, name, description, dirname, images_count, cover, thumbnail, locked, updated_at, created_at from albums where name like ? or description like ?"
 
-	err := connection.Select(&albums, sql, "%" + str + "%", "%" + str + "%")
+	rows, err := connection.Queryx(sql, "%" + str + "%", "%" + str + "%")
 	if err != nil {
 		panic(err)
+	}
+
+	for rows.Next() {
+		album := Album{}
+		err := rows.StructScan(&album)
+		if err != nil {
+			return
+		}
+		album.SetCoverUrl()
+		album.SetThumbnailUrl()
+		album.LoadImages()
+		albums = append(albums, album)
 	}
 
 	return albums
